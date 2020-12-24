@@ -1,0 +1,91 @@
+---
+title: "Chapter 3 - Mastering the grammar"
+author: "Me"
+date: "7/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+mpg
+```
+
+
+Building a scatterplot - 
+
+```{r}
+ggplot(mpg, aes(displ, hwy, color = cyl))+
+  geom_point()
+```
+
+
+Scaling - conversion of data units to something a computer can display. 
+
+More complex plot - adds components to the fix : facets, multiple layers, statistics. 
+- facets : each facet in each own layer has its own dataseet
+- smooth : does not display the raw data but statistical transformation of the data. Other useful stats include 2d binning, group means, quantile regression, and contouring
+
+
+Components of layered grammar 
+- data
+- mappings
+- geoms
+- statistical transformation
+- position - deals with overlapping objects. 
+
+Togethere, these forms a layer. A plot may have multiple layers. Altogether a layered grammar defines a plot as the combination of
+- Default dataset and set of mappings from one variable to aesthetics
+- One or more layers, each of a composed geometric object, statistical transformation, a position adjustment, and optionally a dataset and aesthetic mappings
+- one scale for each mapping
+- A coordinate system
+- A faceting specification
+
+
+Layers 
+- responsible for creating objects we perceive on the plot
+- composed of four parts: data and aesthetic mapping, statistical transformation, a geometric object, position adjustmnet
+
+Scales
+- controls mapping from data to aesthetic attributes. We need scale for every aesthetic used on plot. 
+
+Coordinate system
+- maps the position of objects onto plane of the plot. Position is often specified by two coordinates(x,y) but potentially 3 or more. 
+- coordinate system control how axes and grid lines are drawn. 
+
+Faceting
+- create small multiples each showing a different subset of whole dataset. This is a powerful tool when investigating whether pattern holds across all conditions. 
+
+Data structures
+- A plot object is a list with components data, mapping, layers, scales, coordinates, facets. 
+- Once you have a plot object there are few things you can do with it. Render it on screen, render it to a disk with ggsave. describe its structure with summary. save a cached copy with save.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

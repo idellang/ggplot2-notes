@@ -1,0 +1,353 @@
+---
+title: "Scales, Axes, Legends"
+author: "Me"
+date: "7/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+```
+
+
+Scales also provide the tools you use to read the plot. The domain of each scale corresponds to the range of variable supplied to the scale, and can be continuous, discrete, ordered, or unordered. The range consists of concrete aesthetics that you can perceived and R can understand: position, color, shape, and linetype. 
+
+The process of scaling takes place in three steps: transformation, training, and mapping. Without scale, there is no way to go from data to aesthetics. You can generate plots without knowing the scales but understanding and learning how to manipulate them will give you much control. 
+
+Scales can be divided into four categories: position scales, color scales,  manual discrete scale, and identity scale. The important role of each scale is to produce guide that allows viewer to perform the inverse mapping from aesthetic space to data space and read values from plot.
+
+
+
+HOW SCALES WORK
+
+To describe how scales work, we will describe the domain (data space) and range (aesthetic space) and then outline the process by which one is mapped to another. 
+
+The process of mapping the domain to the range includes the following stages:
+
+transformation: it is often useful to display transformation of the data such as logarithm or square root. Any transformations have been applied, statistical summaries for each layer are based on the transformed data
+
+Training: the domain of the scale is learned. Sometimes learning is extremely straightforward: In a plot with only one layer, representing only raw data, it consists of determining the minimum and maximum values of a continous variable or listing unique levels of categorical variable. The domain can also be specified directly overriding the training process, by manually setting the domain scale with the limits argument. Any values outside the domain will be mapped to NA
+
+Mapping: we now know hte domain and we already knew the range before we started this process. so the last thing to do is apply scaling function that maps data values to aesthetic values
+
+
+
+Usage
+
+Every aesthetic has a default scale that is added to the plot whenever you use that aesthetic. The scale depends on the variable type. Default scales are added when you initialise the plot and when you add new layers. This means that it is possible to get a mismatch between variable type and scale type if you later modify the underlying data or aesthetic mappings. When this happens you need to add the correct scale yourself. 
+
+```{r}
+plot = ggplot(mpg, aes(cty, hwy))
+
+plot + aes(x = drv) + scale_x_discrete()
+```
+
+To add a different scale or to modify some features of the scale, you must construct a new scale and then add it to the plot using +. All scale constructors have common naming scheme. They start with scale_, followed by name of aesthetic (color, shape, x) and finally the name of scale (gradient, hue, manual)
+
+```{r}
+library(tidyverse)
+
+scales = tribble(
+  ~`aesthetic`, ~`discrete`, ~`continuous`,
+  'color and fill', 'brewer, gray, hue, identity, manual', 'gradient, gradient2, gradientn',
+  'position', 'discrete', 'continous, date',
+  'shape', 'shape, identity, manual', ' ',
+  'Line type', 'linetype, identity, manual', '',
+  'size', 'identity, manual' ,'size'
+)
+
+scales
+```
+
+
+
+The following code illustrates this process. We start with a  plot that uses the default color scale and then modify it to adjust appearance of the legend, and use different color scale. 
+
+Explicitly add the default color scale
+```{r}
+p = qplot(sleep_total, sleep_cycle, data = msleep, color = vore)
+
+p + scale_color_hue()
+```
+
+
+Adjust parameters from the default
+
+```{r}
+p + scale_color_hue(
+  'What does\nit eat?',
+  breaks = c('herbi','carni','insecti','omni', NA),
+  labels = c('Plants','meat','insects','both','dont know')
+)
+```
+
+Use a different scale
+
+```{r}
+p + scale_colour_brewer('Set1')
+```
+
+
+
+Scale details: scales can roughly be divided into four groups;
+
+- Position scales: used to map continous, discrete, and datetime variables onto plotting regions and construct corresponding axes
+- color scales: used to map continous and discrete variables to colors
+- Manual scales: used to map discrete variables to choice if symbol size, linetype, shape or color, to create corresponding legend
+- identity scale: used to plot values directly to the aesthetic rather than mapping them.
+
+
+
+Common arguments
+
+name: set the label which appear on the axis or legend. You can supply text strings or mathematical expressions (?plotmath). there are three helper functions on this. xlab, ylab, and labs
+
+```{r}
+p = qplot(cty, hwy, data = mpg, color = displ)
+p + scale_x_continuous('City mpg')
+
+p+ xlab('City mpg') + ylab('highway mpg')
+
+p + labs(
+  x = 'City MPG',
+  y = 'highway',
+  color = 'displacement'
+)
+
+p + xlab(expression(frac(miles, gallon)))
+```
+
+Limits: fixes the domain of the scale. Continous scale takes a vector length 2 and discrete scales take a character vector. Limits are useful for removing data you dont want to be displayed in a plot. and for ensuring that limits are consistent across multiple plots intended to be compared.  Any value not in the domain is discarded, each aesthetic must be in the domain of each scale.
+
+breaks and labels: breaks control the values that appear on the axis. what values tick marks should appear on axis and how continous scale is segmented. Labels specify the labels that should appear at the break points. if labels is set you must also specify breaks so that two can matched up correctly. 
+
+```{r}
+p = qplot(cyl, wt, data = mtcars)
+
+p + scale_x_continuous(breaks = c(5.5, 6.5))
+p + scale_x_continuous(limits = c(5.5, 6.5))
+```
+
+
+
+```{r}
+p = qplot(wt, cyl, data = mtcars, color = cyl)
+p + scale_color_gradient(breaks = c(5.5, 6.5))
+p + scale_color_gradient(limits = c(5.5, 6.5))
+```
+
+Formatter: if no labels are specified, the formatter will be called on each break to produce the label. Useful formatters for continous scales are comma, percent, dollar, and scientific. and for discrete scales abbreviate
+
+Position scales: every plot must have x scale and y scale. ggplot2 comes with continuous, discrete(factor, character, logical) and date scales. Each of these transform data in slightly different way.
+
+A common task for all position axes is changing the axis limits. ggplot2 provides helper functions xlim and ylim.
+
+xlim(10,20) a continous scale from 1 to 20
+ylim(20,10) a reversed continous scale
+xlim('a','b','c'): discrete scale
+xlim(as.date(c('2008-05-1','2008-08-01')))
+
+ANy data outside these limits are not plotted. This is not the same as using zoom. If you want to zoom you need to use xlim and ylim of coord_cartesian this performs purely visual zooming and does not affect the underlying data
+
+by default, limits of position scales extend a little past range of the data. this ensures that the data does not overlap. you can control the amount of expansion with the expand argument. 
+
+
+Continous: the most common continous position scales are scale_x_continous and scale_y_continous which map data to the x axis and y axis. The most interesting variations are produced using transformations. every continoius scale takes a trans argument. transformation is carried out by a transformer. Here are common transfoimers
+
+
+```{r}
+transfomers = tribble(
+  ~`name`, ~`function`, ~`inverse`,
+  'asn', 'tanh^-1(x)', 'tanh(y)',
+  'exp', 'e^y', 'log(y)',
+  'log', 'log(x)', 'e^y',
+  'log10', 'log10(x)','10^y',
+  'log2','log2(x)','2^y',
+  'logit','log(x/1-x)','1 / 1+e(y)',
+  'probit','gamma(x)','gamma(x)^-1',
+  'recip','x^-1','y^-1',
+  'reverse','-x','-y',
+  'sqrt','x^.5','y^2'
+)
+
+transfomers
+```
+
+
+transformations are often used to modify position scales so scale_x_log10 is equivalent to scale_x_continous(trans = 'log10'). trans argument works for any continous scale including the color scale described below.
+
+you can also perform the transformation yourself like plot log10(x) but the axis and tick labels wont be transformed. 
+
+
+```{r}
+qplot(log10(carat), log10(price), data = diamonds)
+qplot(carat, price, data = diamonds)+
+  scale_x_log10()+
+  scale_y_log10()
+```
+
+
+Date and time
+
+Dates and times are basically continous with special ways of labelling the axes. Currently only dates of class date and time of class POSIXct are supported. 
+
+There are three arguments that control the appearance and location of the ticks for date axes: major, minor, and format. generally the scale does a good job of choosing the defaults, but if you need to tweak them details are as follows:
+
+The major and minor argument specify the position of major and minor breaks in terms of date units, years, months, weeks, days, hours. For example major = '2 weeks' will place a major mark every two weeks. 
+
+The format argument specifies how the tick labels should be formatted
+
+
+```{r}
+economics
+plot = ggplot(economics, aes(date, psavert))+
+  geom_line()+
+  ylab('Personal savings rate')+
+  geom_hline(yintercept = 0, color = 'grey 50')
+
+?scale_x_date
+plot + scale_x_date(breaks = '10 years')
+
+plot + scale_x_date(
+  limits = as.Date(c('2004-01-01','2005-01-01')), labels = )
+```
+
+
+Discrete - Discrete position scales map the unique values of their input to integers. The order of the result could be controlled by the breaks argument and levels can be dropped with the limits argument. 
+
+Color - all of the scales discussed in the following section work with the border color and fill color aesthetics
+
+Continuous - three types of continous color gradients based on the number of colors in the gradient:
+- scale_color_gradient and scale_fill_gradient: a two color gradient. Arguments low and high control colors at either end of the gradent
+- scale_color_gradient2 and scale_fill_gradient2: three color gradient low medium high. mid points defaults to 0 but can be set using midpoint argument. this is useful for diverging color schemes
+-scale_Color_gradientn and scale_fill_gradientn : a custom n color gradient. requires a vector of color in the colors argument. without further arguments these colors will be evenly spaced. if you want the values to be unequally spaced, use the values argument. 
+
+color gradients are often use to show height of 2d surface. In the following example well use the surface of a 2d density estimate faithful dataset. 
+
+```{r}
+f2d = with(faithful, MASS::kde2d(eruptions, waiting, h = c(1,10), n = 50))
+df = with(f2d, cbind(expand.grid(x,y), as.vector(z)))
+names(df) = c('eruptions','waiting','density')
+erupt = ggplot(df, aes(waiting, eruptions, fill = density)) + 
+  geom_tile()+
+  scale_x_continuous(expand = c(0,0))+
+  scale_y_continuous(expand = c(0,0))
+
+erupt+scale_fill_gradient(limits = c(0, 0.04))
+
+erupt+scale_fill_gradient(limits = c(0, 0.04), low = 'white', high = 'black')
+
+erupt+scale_fill_gradient2(limits = c(-.04, .04), midpoint = mean(df$density))
+```
+
+
+To create your own custom gradient. use scale_color_gradientn(). This is useful if you have colors that are meaningful to your data. 
+
+```{r}
+install.packages('vcd')
+library(vcd)
+
+fill_gradn = function(pal){
+  scale_fill_gradientn(colors = pal(7), limits = c(0, .04))
+}
+
+```
+
+
+Discrete - there are two color scales for discrete data one which chooses colors in an automated way and another which makes it easy to select from handpicked sets.
+
+the default color scheme is scale_color_hue which picks evenly spaced hues around color wheel. This works upto 8 colors after that it becomes hard to tell different colors apart. The disadvantage of default color scheme is that because colors have same luminance and chroma, when you print them in black and white they all appear same shade of grey
+
+Color brewer is a good algorithmic scheme for colors
+```{r}
+library(RColorBrewer)
+
+display.brewer.all()
+
+point = qplot(brainwt, bodywt, data = msleep, log = 'xy', color = vore)
+area = qplot(log10(brainwt), data = msleep, fill = vore, binwidth = 1)
+
+?scale_color_brewer
+point + scale_color_brewer(type = 's', palette = 'Set 1')
+
+area + scale_fill_brewer(palette = 'Set2')
+```
+If you have own discrete color scale, you can use scale_color_manual()
+
+
+The manual discrete scale
+
+The discrete scales, scales_linetype(), scale_shape, and scale_size_discrete basically have no options. These scales are just list of valid values that are mapped to each factor level in turn
+
+If you want to customise these scales you need to create your own new scale with manual scale: scale_shape_manual(), scale_linetype_manual(), scale_color_manual
+
+scale manual has one important argument values, where you specify values that the scale should produce. The following code demonstrates the use of scale_manual()
+
+```{r}
+plot = qplot(brainwt, bodywt, data = msleep, log = 'xy')
+plot + aes(color = vore) +
+  scale_color_manual(values = c('red','orange','yellow','green','blue'))
+
+colors = c(carni = 'red', "NA" = 'orange', insecti = 'yellow', herbi = 'green', omni = 'blue')
+
+plot + aes(color = vore) + scale_color_manual(values = colors)
+
+plot + aes(color = vore) + scale_shape_manual(values = c(1,2,6,0,23))
+```
+
+
+The following example shows a creative scale color manual when you want to display multiple variables on the same plot and show a useful legend. 
+
+```{r}
+huron = data.frame(year = 1875:1972, level = LakeHuron)
+
+ggplot(huron, aes(year)) +
+  geom_line(aes(y = level - 5), color = 'blue')+
+  geom_line(aes(y = level + 5), color = 'red')
+```
+
+This gets us basically what we want, but the legend is not correct and has wrong colors. 
+
+```{r}
+ggplot(huron, aes(year))+
+  geom_line(aes(y = level -5 , color = 'below'))+
+  geom_line(aes(y = level + 5, color = 'above')) +
+  scale_color_manual('Direction',
+                     values = c('below' = 'blue', 'above' = 'red'))
+
+
+```
+
+
+The identity scale - is used when your data is already in form of plotting that functions in R could understand. 
+
+Legends and axes - collectively, legends and axes are called guides. They are the inverse of the scale. they allow you to read observations from the plot and map them back to their original values. There are natural equivalents between legend and the axis: the legend title and the axis label are equivalent and determined by the legend and the axis. the legend title and axis label are equivalent and determined by the scale name. 
+
+in ggplot2, legends and axes are produced automatically based on scale geoms that you used on plot. in ggplot2 there is little you can do to control the legend. 
+
+the contents of legends and axes are controlled by the scale and the details of the rendering are controlled by theming system. this list the most commonly tweaked settings
+
+
+- scale name controls the axis label and legend title: this can be a string or mathematical expression
+- breaks and labels control what tick marks appear on the axis and what keys appear on the legend. 
+- theme settings axis.* and legend.* control the visual appearance of axes and legends. 
+- internal grid lines are controlled by breaks and minor breaks 
+- theme position and justification of legends are controlled by theme setting legend.position. 
+
+
+
+
+
+
+
+
+
+
+
+
+

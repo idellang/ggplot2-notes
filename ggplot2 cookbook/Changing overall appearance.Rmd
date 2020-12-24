@@ -1,0 +1,146 @@
+---
+title: "Controlling overall appearance of graphs"
+author: "Me"
+date: "7/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Setting the title of the graph
+
+use ggtitle() or labs()
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(gcookbook)
+library(patchwork)
+
+p = ggplot(heightweight, aes(x = ageYear, y = heightIn)) + geom_point()
+
+p + ggtitle('Age and Height\nof School Children')
+```
+
+if you want to move the title
+
+```{r}
+p + ggtitle('Age and Height\nof School Children') +
+  theme(plot.title = element_text(vjust = -2.5))
+```
+
+### Changint the apperance of text
+
+Use theme() with element_text()
+
+```{r}
+windowsFonts()
+
+p + theme(
+  axis.title.x = element_text(size = 16, lineheight = .9, family = 'TT Arial',
+                              face = 'bold.italic', color = 'red')
+)
+```
+
+
+To set the appearance of text geoms, use geom_text or annotate
+
+```{r}
+p + annotate('text', x = 15, y= 53, label = 'some text', size = 7, family = 'serif', fontface = 'bold')
+```
+
+There are two kinds of text items in ggplot2, theme elements and text geoms. theme elements are non data elements like title, legend, and axes. Text geoms are things that are plot of the plot itself. 
+
+### Using themes
+
+You may want to use premade themes
+
+```{r}
+a = p + theme_bw()
+b = p + theme_minimal()
+
+a + b
+```
+
+### Changingg the apperance of theme elements
+
+add theme() with correspondign element_xx()
+
+```{r}
+#options for plotting area
+a = p + theme(
+  panel.grid.major = element_line(color = 'red'),
+  panel.grid.minor = element_line(color = 'red', linetype = 'dashed', size = .2),
+  panel.background = element_rect(fill = 'lightblue'),
+  panel.border = element_rect(color = 'blue', fill = NA, size = 2)
+)
+
+#options for text items
+b = p + ggtitle('Title here')+
+  theme(
+    axis.title.x = element_text(color = 'red', size = 14),
+    axis.text.x = element_text(color = 'red'),
+    axis.title.y = element_text(color = 'red', size = 14, angle = 90),
+    axis.text.y = element_text(color = 'red'),
+    plot.title = element_text(color = 'red', size = 20, face = 'bold')
+  )
+
+a + b
+```
+
+```{r}
+#options for legend
+p = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex))+ geom_point()
+
+a = p + theme(
+  legend.background = element_rect(fill = 'grey85', color = 'red', size = 1),
+  legend.title = element_text(color = 'blue', face = 'bold', size = 14),
+  legend.text = element_text(color = 'red'),
+  legend.key = element_rect(color = 'black', size = .25)
+)
+#options for facet
+
+b = p + facet_wrap(~sex) +
+  theme(
+    strip.background = element_rect(fill = 'pink'),
+    strip.text = element_text(size = 14, face = 'bold')
+  )
+
+a + b
+```
+
+
+```{r}
+
+#does not work
+a = p + theme(axis.title.x = element_text(color = 'red')) + theme_bw()
+
+b = p + theme_bw() + theme(axis.title.x = element_text(color = 'red'))
+
+a + b
+```
+
+### Hiding grid lines
+
+use element_blank() on panel.grid.major
+
+```{r}
+p = ggplot(heightweight, aes(x = ageYear, y = heightIn)) + geom_point()
+
+p + theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank()
+)
+```
+It is also possible to hide only x or y axis.
+
+
+
+
+
+
+

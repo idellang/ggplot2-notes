@@ -1,0 +1,462 @@
+---
+title: "Axes"
+author: "Me"
+date: "7/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Axes
+The x and y axes provides context for interpreting the displayed data. 
+
+### Swapping X and Y axes
+
+Use coord_flip() to flip the axes
+
+
+
+```{r}
+library(ggplot2)
+library(gcookbook)
+library(patchwork)
+
+ggplot(PlantGrowth, aes(x = group, y=  weight)) + 
+  geom_boxplot()+
+  coord_flip()
+```
+
+Sometimes when the axes are swapped, the order of items will be reversed of what you want. If the x variable is a factor, the order can be reversed using scale_x_discrete() with limits = rev(levels(...))
+
+```{r}
+ggplot(PlantGrowth, aes(x = group, y=  weight)) + 
+  geom_boxplot()+
+  coord_flip()+
+  scale_x_discrete(limits = rev(levels(PlantGrowth$group)))
+```
+
+### Setting range of continuous axis
+
+You can use xlim() or ylim() to set the minimum and maximum values of a continuous axis. 
+
+```{r}
+p =  ggplot(PlantGrowth, aes(x = group, y = weight)) + geom_boxplot()
+
+b = p + ylim(0, max(PlantGrowth$weight))
+
+p + b
+```
+
+ylim() is a shorthand for setting the limits in scale_y_continuous, same with xlim and scale_x_continuous. 
+
+Sometimes you will need to set other properties of scale_y_continuous, and in these cases, xlim() and scale_y_continuous together may result in some unexpected behavior. Because only the first directives will have an effect. In these two examples, ylim(0, 10) should set y range from 0 to 10, and scale_y_continious(breaks = c(0,5,10)) should put tick marks at 0, 5, 10. However, in both cases, only the second has effect
+
+```{r}
+a = p + ylim(0, 10) + scale_y_continuous(breaks = NULL) #error
+
+p + scale_y_continuous(breaks = NULL) + ylim(0, 10)
+```
+
+In ggplot2, there are two ways of setting range of axes. the first one is to modify the scale and second is to apply coordinate transform. WHen you modify x and y scale, any data outside limits is removed. 
+
+WIth the boxplots on these examples, if you restrict the yrange so that some of the original data is clipped, the boxplto statistics will be computed based on clipped data and shape of the boxplots will change
+
+```{r}
+a = p + scale_y_continuous(limits = c(5, 6.5))
+
+b = p + coord_cartesian(ylim = c(5, 6.5))
+
+a + b
+```
+
+It is also possible to expand the range in one direct using expand limits.
+
+```{r}
+p + expand_limits(y = 0)
+```
+
+
+### Reversing a continous axis.
+
+Use scale_x_reverse or scale_y_reverse. The direction of axis could also be reversed by specifying the limits in reversed order, with maximum first then minimum
+
+```{r}
+ggplot(PlantGrowth, aes(x = group, y = weight)) +
+  geom_boxplot()+
+  scale_y_reverse()
+
+## similar effect
+
+ggplot(PlantGrowth, aes(x = group, y = weight)) +
+  geom_boxplot() +
+  ylim(6.5, 3.5)
+```
+
+Like scale_y_continuous, scale_y_reverse does not work with ylim. If you want an axis and set its range, you must do it inside the scale_y_reverse statement. 
+
+
+### Changing order of items on a categorical axis
+
+For a categorical or discrete axis, one with factor mapped to it, the order of items can be changed by setting limits in scale_x_discrete or scale_y_discrete.
+
+You can also use that method to plot a subset of
+
+```{r}
+p = ggplot(PlantGrowth, aes(x = group, y = weight))+ geom_boxplot()
+
+a = p + scale_x_discrete(limits = c('trt1','ctrl','trt2'))
+
+b = p + scale_x_discrete(limits = c('trt1','ctrl'))
+
+a / b
+```
+
+you can also use limits = rev(levels(...)) and put the factor inside. 
+
+```{r}
+p + scale_x_discrete(limits = rev(levels(PlantGrowth$group)))
+```
+
+### Setting the scaling ratio of X and Y axes
+
+Use coord_fixed() to set 1:1 scaling between x and y axes
+
+```{r}
+sp = ggplot(marathon, aes(x = Half, y = Full)) + geom_point()
+
+sp + coord_fixed()
+```
+
+Its also helpful to set the tick spacing to be the same by setting scale_x_continuous and scale_y_continuous. 
+
+```{r}
+sp + coord_fixed()+
+  scale_y_continuous(breaks = seq(0, 420, 30))+
+  scale_x_continuous(breaks = seq(0, 420, 30))
+```
+
+If instead of equal ratio, you want some other fixed ratio, set the ratio parameter. 
+
+```{r}
+sp + coord_fixed(ratio = .5) +
+  scale_y_continuous(breaks = seq(0, 420, 30))+
+  scale_x_continuous(breaks = seq(0, 420, 30))
+```
+
+### Setting positions of tick marks
+
+You want to set where the tick marks appear
+
+```{r}
+a = ggplot(PlantGrowth, aes(x = group, y = weight)) + geom_boxplot()
+b = ggplot(PlantGrowth, aes(x = group, y = weight)) + geom_boxplot()+
+  scale_y_continuous(breaks = c(4, 4.25, 4.6, 5, 6, 8))
+
+a + b
+```
+
+The location of the tick marks are where the major and minor grid lines are drawn. You can also use seq() function for breaks
+
+If the axis is discrete instead of continuous, then there is a default tick mark for each item. For discrete axes, you can change the order of items or remove them by specifying limits. Setting breaks will change which of the labels are labeled. 
+
+```{r}
+ggplot(PlantGrowth, aes(x = group, y = weight)) +
+  geom_boxplot()+
+  scale_x_discrete(limits = c('trt2','ctrl'))
+```
+
+### Removing tickmarks and labels
+
+To remove tick labels, use theme(element.text.y = element_blank()). This will work for both continuous and categorical axes
+
+```{r}
+p = ggplot(PlantGrowth, aes(x = group, y = weight)) + 
+  geom_boxplot()
+
+p + theme(axis.text.y = element_blank())
+```
+
+To remove tickmarks, use theme(axis.ticks = element_blank()). This will remove the tickmarks on both axes.
+
+```{r}
+p +
+  theme(axis.ticks.x = element_blank())
+```
+
+To remove tickmarks, labels, and gridlines, set breaks = NULL
+
+```{r}
+p + scale_y_continuous(breaks = NULL)
+```
+
+### Changing the text of tick labels
+
+to set arbitrary labels, pass to value to breaks and labels in the scale
+```{r}
+hwp = ggplot(heightweight, aes(x = ageYear, y = heightIn))+
+  geom_point()
+
+hwp + scale_y_continuous(breaks = c(50, 56, 60, 66, 72),
+                         labels = c('Tiny','Really\nshort','Short','Medium','Tallish'))
+```
+Instead of setting arbitrary labels, it is more common to have your data stored in one format. 
+
+```{r}
+footinch_formatter = function(x){
+  foot = floor(x/12)
+  inch = x %% 12
+  return (paste(foot, "'", inch, "\"", sep = ""))
+}
+
+footinch_formatter(56:64)
+
+hwp + scale_y_continuous(labels = footinch_formatter)
+```
+### Changing the apperance of ticklabels
+
+```{r}
+bp = ggplot(PlantGrowth, aes(x = group, y = weight)) + 
+  geom_boxplot()+
+  scale_x_discrete(breaks = c('ctrl','trt1','trt2'),
+                   labels = c('Control','Treatment 1', 'Treatment2'))
+
+#to rotate the axis 90 degrees
+
+bp + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+```
+
+Besided rotation, you can also change other text properties
+
+```{r}
+bp + theme(
+  axis.text.x = element_text(family = 'Times', face = 'italic',
+                             color = 'darkred', size = rel(1))
+)
+```
+
+### Changing the text of the axis labels
+
+Use xlab or ylab
+
+```{r}
+hwp +
+  xlab('Age in years')+
+  ylab('Height in inches')+
+  scale_y_continuous(labels = footinch_formatter)
+```
+Another way of setting is to use labs().
+
+The name of the axis could also be specified in the scale_x_continuous or scale_x_discrete in the name argument
+
+### Removing axis labels
+
+use theme(axis.title.x = element_blank())
+
+The names are removed but the ticks remain. 
+
+```{r}
+p + theme(axis.title = element_blank())
+```
+
+### Changing the apperance of Axis labels
+
+```{r}
+hwp +
+  ylab('height\n(inches)')+
+  theme(axis.title.x = element_text(face = 'italic', color = 'darkred'))
+```
+
+### Showing lines along the axes. 
+
+change axis.line
+
+```{r}
+hwp + 
+  theme(axis.line  = element_line(color = 'black'))
+```
+
+```{r}
+hwp + 
+  theme(axis.line  = element_line(color = 'black', size = 2),
+        panel.border = element_blank())
+```
+
+### Using logarithmic axis. 
+
+Use scale_x_log10 or scale_y_log10
+
+```{r}
+library(MASS)
+p = ggplot(Animals, aes(body, brain, label = rownames(Animals)))+
+  geom_text()
+
+p +
+  scale_x_log10()+
+  scale_y_log10()
+```
+
+If you want to use exponential notation for break levels. use trans_format
+```{r}
+library(scales)
+
+p + 
+  scale_x_log10(
+  breaks = 10^(-1:5),
+  labels = trans_format('log10', math_format(10^.x))
+)+
+  scale_y_log10(
+  breaks = 10^(-1:5),
+  labels = trans_format('log10', math_format(10^.x))
+)
+```
+
+Its possible to use log axis for one axis. it is often useful to represent financial data this way. 
+```{r}
+ggplot(aapl, aes(x = date, y = adj_price)) + geom_line()+
+  scale_y_log10(breaks = c(2,10,50,250))
+```
+
+### Adding ticks for logarithmic axis
+
+```{r}
+ggplot(Animals, aes(x = body, y = brain, label = rownames(Animals)))+
+  geom_text(size = 3)+
+  annotation_logticks()+
+  scale_x_log10()+
+  scale_y_log10()+
+  theme_bw()+
+  coord_fixed()
+```
+
+### Making a circular graph
+
+use coord_polar(). 
+
+```{r}
+a = ggplot(wind, aes(x = DirCat, fill = SpeedCat))+
+  geom_histogram(binwidth = 15)+
+  coord_polar()+
+  scale_x_continuous(limits = c(0, 360))
+
+b = ggplot(wind, aes(x = DirCat, fill = SpeedCat))+
+  geom_histogram(binwidth = 15, color = 'black', size = 1)+
+  guides(fill = guide_legend(reverse = T)) +
+  coord_polar()+
+  scale_x_continuous(limits = c(0, 360), breaks = seq(0, 360, 45), 
+                     minor_breaks = seq(0, 360, 15))+
+  scale_fill_brewer()
+
+a + b
+```
+
+Be cautious when using polar plots because they can distort the data. 
+
+
+it may also be useful to set the starting angle with the start argument especially when using a discrete variable for theta. The starting angle is in radians so if you know the adjustment in degrees, youll have to convert it to radians
+
+coord_polar(start = -45 * pi / 180)
+
+Polar coordinates can be used with other geoms, including line and points. There are few important things to keep in mind. First, by default for the variable that is mapped to y or r, the smallest value is mapped to the center. In other words, the smallest data value gets mapped to visual radius of 0. 
+
+Next when using a continuous x (theta), the smallest and largest values are merged. Sometimes this is desirable and sometimes not. To change this behavior you need to set the limits. 
+
+Finally, the theta value of the polar coordinates do not wrap around. 
+
+```{r}
+md = data.frame(
+  deaths = as.numeric(mdeaths),
+  month = as.numeric(cycle(mdeaths))
+)
+
+p = ggplot(md, aes(x = month, y = deaths)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:12)
+
+p + coord_polar()
+```
+
+The first problem is that the data values are mapped to radius. Well fix this by setting the y (or r) limits to 0 to the maximum value. ALso the lowest and highest month values, 1 and 12 are shown at the same angle. fix that using xlim
+
+```{r}
+p + coord_polar() + ylim(0, max(md$deaths)) + xlim(0, 12)
+```
+
+There is one last issue, the beginning and end are not connected.
+
+```{r}
+mdx = md[md$month == 12, ]
+
+mdx$month = 0
+
+mdnew = rbind(mdx, md)
+
+p %+%
+  mdnew +
+  coord_polar() +
+  ylim(0, max(md$deaths))
+```
+
+
+### Using dates on axis
+
+```{r}
+ggplot(economics, aes(x = date, y = psavert)) + geom_line()
+```
+
+```{r}
+#take a subset
+
+econ = subset(economics, date >= as.Date('1992-05-01') & date < as.Date('1993-06-01'))
+
+#baseplot
+
+p = ggplot(econ, aes(x = date, y = psavert)) + geom_line()
+
+#specify breaks
+
+datebreaks = seq(as.Date('1992-06-01'), as.Date('1993-06-01'), by = '2 month')
+
+p + scale_x_date(breaks = datebreaks) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+Change label formatting
+```{r}
+p + 
+  scale_x_date(breaks = datebreaks, labels = date_format('%Y %b')) +
+   theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

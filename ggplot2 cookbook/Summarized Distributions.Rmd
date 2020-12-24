@@ -1,0 +1,380 @@
+---
+title: "Summarized data distributions"
+author: "Me"
+date: "7/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Basic histogram
+```{r}
+library(ggplot2)
+library(gcookbook)
+library(patchwork)
+
+ggplot(faithful, aes(x = waiting))+ geom_histogram()
+```
+
+
+If you want to take a look at some data that is not in a dataframe. You can get same result by passing in NULL for the data frame and giving ggplot() a vector of values. 
+
+```{r}
+w = faithful$waiting
+
+ggplot(NULL, aes(w)) + geom_histogram()
+```
+
+By default, bins are set to 30. You can change the bin size using binwidth or divide the range of data into specific number of bins. Can also change the colors
+
+```{r}
+ggplot(faithful, aes(x = waiting))+
+  geom_histogram(binwidth =  5, fill = 'white', color = 'black')
+```
+
+
+```{r}
+#divide the bin into if
+
+binsize = diff(range(faithful$waiting))/15
+
+ggplot(faithful, aes(x = waiting))+
+  geom_histogram(binwidth = binsize, fill = 'white', color = 'black')
+```
+
+```{r}
+h = ggplot(faithful, aes(x = waiting))
+
+a = h + geom_histogram(binwidth = 8, fill = 'white', color = 'black', origin = 31)
+
+b = h+ geom_histogram(binwidth = 8, fill = 'white', color = 'black', origin = 35)
+
+a / b
+```
+
+
+
+### Making a multiple histogram from grouped data
+
+```{r}
+library(MASS)  #for the dataset
+
+#use smoke as faceting variable
+ggplot(birthwt, aes(x = bwt))+
+  geom_histogram(fill = 'white', color = 'black')+
+  facet_grid(smoke ~ .)
+```
+
+One problem of the facet labels are they are just 0 and 1. To change labels, we need to change the names of the factor levels. 
+
+```{r}
+library(tidyverse)
+birthwt1 = birthwt
+
+birthwt1$smoke = factor(birthwt$smoke)
+levels(birthwt1$smoke)
+
+birthwt1$smoke = recode(birthwt$smoke, '0' = 'No Smoke', '1'= 'Smoke')
+
+a = ggplot(birthwt1, aes(x = bwt))+
+  geom_histogram()+
+  facet_grid(smoke ~ .)
+
+b = ggplot(birthwt1, aes(x = bwt))+
+  geom_histogram()+
+  facet_grid(smoke ~ ., scales = 'free')
+
+a + b
+```
+
+
+Map smoke to fill, make the bars no stacked and make them semi transparent
+```{r}
+ggplot(birthwt1, aes(x = bwt, fill = smoke))+
+  geom_histogram(position = 'identity', alpha = .4)
+```
+
+
+### Making a density curve
+
+Use geom density and map the continous variable to x
+
+```{r}
+ggplot(faithful, aes(x = waiting))+
+  geom_density()+
+  expand_limits(y = 0)
+```
+
+You can also use geom_line(stat='density')
+
+
+```{r}
+ggplot(faithful, aes(x = waiting))+
+  geom_line(stat = 'density')
+```
+
+A kernel density curve is estimate of the population distribution, based on the sample data. The amount of smoothing depends on the kernel bandwidth; the larger the bandwidth the more smoothing. bandiwth could be set with the adjustment parameter. 
+
+```{r}
+ggplot(faithful, aes(x = waiting))+
+  geom_line(stat = 'density')+
+  geom_line(stat = 'density', adjust = .25, color = 'red')+
+  geom_line(stat = 'density', adjust = 2, color = 'blue')
+```
+Add an 80% transparent fill with alpha = .2
+```{r}
+ggplot(faithful, aes(x = waiting))+
+  geom_density(fill = 'blue', alpha = .2)+
+  xlim(35,105)
+```
+
+To compare theoretical and observed distributions, you can overlay the density curve with the histogram. Since the y values for the density curve is small, it would be visible if you overlaid it on a histogram to match the density curve with the mapping y = ..density..
+
+```{r}
+ggplot(faithful, aes(x = waiting, y = ..density..))+
+  geom_histogram(fill = 'cornsilk', color ='grey60', size = .2)+
+  geom_density()+
+  xlim(35,105)
+```
+
+### Making multiple density curves from grouped data
+
+Use geom density and map the grouping variable to aesthetic color or fill. 
+
+```{r}
+str(birthwt1)
+
+birthwt1$smoke = factor(birthwt1$smoke)
+
+a = ggplot(birthwt1, aes(x = bwt, color = smoke)) + geom_density()
+b = ggplot(birthwt1, aes(x = bwt, fill = smoke)) + geom_density(alpha = .3)
+
+a / b
+```
+
+
+Another method is using facets
+
+```{r}
+ggplot(birthwt1, aes(x = bwt, y = ..density..))+
+  geom_histogram(binwidth = 200, fill = 'cornsilk', color = 'black', size = .2)+
+  geom_density()+
+  facet_wrap(~smoke)
+```
+
+
+### Making a frequency polygon
+
+Use geom_freqpoly
+
+```{r}
+a = ggplot(faithful, aes(x = waiting))+
+  geom_freqpoly()
+
+b = ggplot(faithful, aes(x = waiting))+
+  geom_freqpoly(binwidth = 4)
+
+a/ b
+```
+
+### Making a boxplot
+
+use geom_boxplot(), mapping a continuous variable to y and discrete variable to x
+
+```{r}
+#use factor to convert numeric variable to discrete
+a = ggplot(birthwt, aes(x = factor(race), y = bwt)) + 
+  geom_boxplot()
+
+#change the binwidth 
+b = ggplot(birthwt, aes(x = factor(race), y = bwt)) + 
+  geom_boxplot(width = .5)
+
+a + b
+```
+
+You can change the size and shape of the outlier using outlier.size and outlier.shape
+
+```{r}
+ggplot(birthwt, aes(x = factor(race), y = bwt))+
+  geom_boxplot(outlier.size = 2, outlier.shape = 23, outlier.fill = 'black')
+```
+To make a boxplot just a single group, we have to provide arbitrary value for x, otherwise ggplot2 wont know the x coordinate to use for boxplot and remove the x-axis tick markers
+
+```{r}
+ggplot(birthwt, aes(x = 1, y = bwt))+
+  geom_boxplot()+
+  scale_x_continuous(breaks = NULL)+
+  theme(axis.title.x = element_blank())
+```
+
+### Adding notches to boxplots
+
+You want to add notches to help assess the positions of medians
+
+use geom_boxplot and set notch = TRUE
+
+```{r}
+ggplot(birthwt, aes(x = factor(race), y = bwt))+
+  geom_boxplot(notch = T)
+```
+
+### adding means to a boxplot
+
+use stat summary. 
+
+```{r}
+ggplot(birthwt, aes(x = factor(race), y = bwt))+
+  geom_boxplot()+
+  stat_summary(fun = 'mean', geom = 'point', shape = 23, size = 3., fill = 'black')
+```
+
+### Making a violin plot
+
+Violin plots makes you easily compare density estimates between different groups.
+
+```{r}
+p  = ggplot(heightweight, aes(x = sex, y = heightIn))
+
+p + geom_violin()
+```
+
+
+Violin plots make it easy to compare distribution side by side. A violin plot is a kernel density estimate mirrored. additionally boxplot outliers are not displayed which we do using outlier.color = NA
+
+```{r}
+p + geom_violin()+
+  geom_boxplot(width = .1, fill = 'black', outlier.color = NA)+
+  stat_summary(fun = mean, geom = 'point', fill = 'white', shape = 21, size = 2.5)
+```
+
+In the example above, we layered the objects bottom up. starting from the violin then boxplot. then layered the mean using stat_summary.
+
+the default range goes from the minimum to maximum data values. the flat ends of the violins are the extreme data. Its possible to keep the tails using trim = F
+
+```{r}
+p + geom_violin(trim  = F)
+```
+
+By default violin plots are scaled so that the total area would be the same. Instead of equal scales, you can use count = T to scale areas proportionally to the number of observations in each group. 
+
+You can change the amount of smoothing using adjust parameter. use larger value ffor higher smoothing
+
+```{r}
+a = p + geom_violin(scale = T)
+b = p + geom_violin(adjust = 2)
+
+a + b
+```
+
+### Making a dotplot
+
+A dotplot shows each data point
+
+Use geom_dotplot(). 
+
+```{r}
+countries2009 = subset(countries, Year == 2009 & healthexp > 2000)
+
+p = ggplot(countries2009, aes(x = infmortality))
+
+p + geom_dotplot()
+```
+
+By default geom_dotplot bins the data along x axis and stacks the data in y. The dots are stacked visually. The resulting graphs has y tick marks that are not meaningful. in this example well also use geom_rug() to show exactly where each data point
+
+```{r}
+p + geom_dotplot(binwidth = .25)+
+  geom_rug()+
+  scale_y_continuous(breaks = NULL)+ #remove tick markers
+  theme(axis.title.y = element_blank())
+```
+
+You may notice that stacks are not regularly spaced in the horizontal directino. THe position of each stack is centered above the set of data points that it represents. To use bins that are arranged with fixed, regular spacign like histogram. use method = 'histodot'. 
+
+```{r}
+p + geom_dotplot(method = 'histodot', binwidth = .25) +
+  geom_rug()+
+  scale_y_continuous(breaks = NULL)+
+  labs(y = '')
+```
+
+The stacks can also be stacked centered or centered in such a way that stacks with even and odd quantities stay aligned. This can be done y setting stackdir = 'center' or stackdir = 'centerwhole'
+
+```{r}
+a = p + geom_dotplot(binwidth = .25, stackdir = 'center')+
+  scale_y_continuous(breaks = NULL)+
+  theme(axis.title.y = element_blank())
+
+b = p + geom_dotplot(binwidth = .25, stackdir = 'centerwhole')+
+  scale_y_continuous(breaks = NULL)+
+  theme(axis.title.y = element_blank())
+
+a / b
+```
+
+
+### Making multiple dotplots for grouped data. 
+
+To compare multiple groups, its possible to stack the dots along the y axis and group them along x axis by setting the binaxis = y.
+
+```{r}
+ggplot(heightweight, aes(x = sex, y = heightIn))+
+  geom_dotplot(binaxis = 'y', binwidth = .5, stackdir = 'center')
+```
+
+Dotplots are sometimes ovarlaid with boxplots, in this case, it may be helpful to make dotplots hollow and have the boxplots not show outliers
+```{r}
+ggplot(heightweight, aes(x = sex, y = heightIn))+
+  geom_boxplot(outlier.colour = NA, width = .4)+
+  geom_dotplot(binaxis = 'y', binwidth = .5, stackdir = 'center', fill = NA)
+```
+
+When the x variables are treated as numeric, you must also specify the group or else the data will be treated as a single group. 
+
+```{r}
+ggplot(heightweight, aes(x = sex, y = heightIn))+
+  geom_boxplot(aes(x = as.numeric(sex) + .2, group = sex), width = .25) +
+  geom_dotplot(aes(x = as.numeric(sex) - .2, group = sex), binaxis = 'y', binwidth = .5, stackdir = 'center')+
+  scale_x_continuous(breaks = 1:nlevels(heightweight$sex),
+                     labels = levels(heightweight$sex))
+```
+
+### Making a density plot of two dimensional data
+
+use stat_density2d which makes a 2d kernel density estimate from the data
+
+```{r}
+p = ggplot(faithful, aes(x = eruptions, y  = waiting))
+
+p + geom_point() + stat_density2d()
+```
+
+it is also possible to map the height of the density curve to the color of the contour lines using level
+
+```{r}
+p + stat_density_2d(aes(color = ..level..))
+```
+
+We can map the density to fill or alpha
+```{r}
+a = p + stat_density2d(aes(fill = ..density..), geom= 'raster', contour = F)
+b = p + stat_density2d(aes(alpha = ..density..), geom= 'tile', contour = F)
+
+a + b
+```
+
+You can change the bandwidth of the estimate. To do this, pass a vector for the x and y banwidths to h. 
+
+```{r}
+p + stat_density2d(aes(fill = ..density..), geom = 'raster', contour = F, h = c(.5,.5))
+```
+
+
+
+
+
+
+

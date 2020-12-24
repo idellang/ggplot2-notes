@@ -1,0 +1,154 @@
+---
+title: "Colors"
+author: "Me"
+date: "7/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Setting the colors of some geoms
+
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(gcookbook)
+library(MASS)
+```
+In the call geom(), set the values to color or fill
+
+```{r}
+a = ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point(color = 'red')
+b = ggplot(birthwt, aes(x = bwt)) + geom_histogram(fill = 'red', color = 'black')
+
+a + b
+```
+
+
+### Mapping variables to color
+
+```{r}
+a = ggplot(cabbage_exp, aes(x = Date, y = Weight, fill = Cultivar)) + geom_col(color = 'black', position = 'dodge')
+
+b = ggplot(mtcars, aes(x = wt, y = mpg, color = cyl)) + geom_point()
+
+a + b
+```
+Set the cyl to factor to make it a discrete variable
+
+```{r}
+b = ggplot(mtcars, aes(x = wt, y = mpg, color = cyl)) + geom_point()
+
+c = ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) + geom_point()
+
+b +c 
+```
+
+
+### Using a different palette 
+
+Use one of the scales listed
+scale_color_discrete - evenly spaced color
+scale_color_hue - same as discrete
+scale_color_grey - greyscale palette
+scale_color_brewer - colorbrewer pallets
+scale_color_manual - manually specified collors
+
+
+```{r}
+p = ggplot(uspopage, aes(x = Year, y = Thousands, fill = AgeGroup)) + geom_area()
+
+p + scale_fill_discrete() + p + scale_fill_brewer()
+```
+
+There are two types of scales that use color: fill scales and color scales
+
+The default lightness value is 65. This is good for filled areas but a little light on points and lines.
+
+```{r}
+h = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex))+
+  geom_point()
+
+h + h + scale_color_hue(l = 30)
+```
+
+Scale color brewer provides a number of palettes
+```{r}
+library(RColorBrewer)
+display.brewer.all()
+```
+
+```{r}
+p + scale_fill_brewer(palette = 'Oranges')
+```
+You can also use a paletter of greys. The default start is .2 and default end is .8
+
+```{r}
+p + scale_fill_grey(start = .7, end = 0)
+```
+
+### Using a manually defined palette
+Specify the colors in scale_color_manual()
+
+```{r}
+h = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex)) + geom_point()
+
+h + scale_color_manual(values = c('red','blue'))
+```
+### Using a manually defined palette for a continuous variable
+
+```{r}
+library(scales)
+
+p = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = weightLb)) + geom_point(size = 3)
+
+#gradient between two colors
+a = p + scale_color_gradient(low = 'black', high = 'white')
+#with a white midpoint
+b = p + scale_color_gradient2(low = muted('red'), mid = 'white', high = muted('blue'))
+#gradient n colors
+c = p + scale_color_gradientn(colors = c('darkred','orange','yellow','white'))
+
+a/b/c
+```
+
+## color a shaded region base on value
+
+```{r}
+cb = subset(climate, Source == 'Berkeley')
+
+cb %>%
+  mutate(valence = ifelse(Anomaly10y >= 0, 'pos', 'neg')) %>%
+  ggplot(aes(x = Year, y = Anomaly10y))+
+  geom_line()+
+  geom_area(aes(fill = valence)) +
+  geom_hline(yintercept = 0, color = 'white', size = rel(1.2))+
+  scale_fill_manual(values = c('#CCEEFF','#FFDDDD'), guide = F)+
+  scale_x_continuous(expand = c(0,0))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

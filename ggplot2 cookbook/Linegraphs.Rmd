@@ -1,0 +1,275 @@
+---
+title: "Linegraph"
+author: "Me"
+date: "7/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Line graphs 
+Typically used for visualizing how one continuous variable, on the y axis changes in relation to another variable. Often the x variable represents time, but it may also represent some other continuous quantity. Line graphs could also be used with a discrete variable on the x axis. this is appropriate when the variable is ordered( e.g small, medium, large), but not when it is unordered. 
+
+
+### basic line graph
+
+
+```{r}
+library(ggplot2)
+library(gcookbook)
+
+ggplot(BOD, aes(Time, y = demand))+
+  geom_line()
+```
+
+In here, variable demand is numeric, but it could be treated as categorical variable by converting it to a factor(). When the x variable is a factor, you must also use aes(group = 1) to ensure ggplot() knows the data points belong together and should be connected with a line
+
+```{r}
+#make a copy of data
+BOD1 = BOD
+#convert to factor
+BOD$Time = factor(BOD$Time)
+
+ggplot(BOD1, aes(x = Time, y = demand, group = 1)) + geom_line()
+```
+
+With ggplot2, the default y range is just enough to include all the y vlaues. it is better to start the y axis to 0
+
+```{r}
+ggplot(BOD1, aes(x = Time, y = demand, group = 1))+ 
+  geom_line()+
+  expand_limits(y = 0)
+```
+
+### Adding points to a line
+
+You need to add geom_point()
+
+```{r}
+ggplot(BOD1, aes(x = Time, y = demand)) + 
+  geom_line()+
+  geom_point()
+```
+
+Sometimes it is useful to indicate each data point on the line graph. This is helpful when the density of observations is low, or when observations do not happen at regular intervals. 
+
+```{r}
+ggplot(worldpop, aes(x = Year, y = Population))+
+  geom_line()+
+  geom_point()
+```
+Log_y axis
+
+```{r}
+ggplot(worldpop, aes(x = Year, y = Population))+
+  geom_line()+
+  geom_point()+
+  scale_y_log10()
+```
+
+### Making linegraphs with multiple lines
+
+
+```{r}
+library(tidyverse)
+
+tg = ToothGrowth %>%
+  group_by(supp, dose) %>%
+  summarise(length = mean(len))
+
+#map supp to color
+
+ggplot(tg, aes(dose, length, color = supp)) + geom_line()
+
+```
+Map to linetype
+```{r}
+ggplot(tg, aes(dose, length, linetype = supp)) + geom_line()
+```
+
+Another common problem of not grouping is that you will see a jagged sawtooth pattern
+
+```{r}
+ggplot(tg, aes(x = dose, y = length))+
+  geom_line()
+```
+
+This happens because there are multiple values in the y location. if any discrete variables are mapped to color or linetype they are automatically used as a grouping variable. But if you want to use other variables for grouping that are not mapped to an aesthetic, they should be used in group
+
+If you plot has points with the lines, you can also map variables to properties of the points, such as shape and fill
+```{r}
+ggplot(tg, aes(x = dose, y = length)) + 
+  geom_line() +
+  geom_point(aes(shape = supp), size = 4)
+```
+```{r}
+ggplot(tg, aes(x = dose, y = length, fill = supp))+
+  geom_line()+
+  geom_point(size = 4, shape = 21)
+  
+  
+```
+
+Sometimes points will overlap so, in this cases you may want to dodge them which means their positions are adjusted left and right. When doing so, you must also dodge the lines or else only the points will move and they will be misaligned.
+
+```{r}
+ggplot(tg, aes(x = dose, y = length, shape = supp))+
+  geom_line(position = position_dodge(.2))+
+  geom_point(position = position_dodge(.2), size = 4)
+```
+
+### Changing the apperance of the lines
+
+The type of line(solid, dashed, dotted, etc) is set with linetype, the thickness with size, and color the line of color.
+
+```{r}
+ggplot(BOD1, aes(x = Time, y = demand))+
+  geom_line(linetype = 'dashed', size = 2, color = 'steelblue')
+```
+
+If there is more than one line, setting the aesthetic properties will affect all of lines. On the other hand, mapping variables to the properties, will result to each line looking different. The default colors are not the most appealing so you may want to use a different palette using scale_color_brewer or scale_color_manual
+
+```{r}
+tg %>%
+  ggplot(aes(dose, length, color = supp))+
+  geom_line()+
+  geom_point()+
+  scale_color_brewer(palette = 'Set1')
+```
+
+To set a single color for all lines, specify color outside of aes, the same works for size, linetype, and point shape. 
+
+```{r}
+ggplot(tg, aes(x = dose, y = length, group = supp))+
+  geom_line(color = 'darkgreen', size = 1.5)
+```
+
+Since supp is mapped to color, it will automatically be used for grouping
+
+```{r}
+ggplot(tg, aes(x = dose, y = length, color=  supp))+
+  geom_line(linetype = 'dashed')+
+  geom_point(shape = 22, size = 3, fill = 'white')
+```
+
+### Changing the apperance of points
+
+in geom_point(), set the size, shape, color ,and fill outside the aes. 
+
+```{r}
+ggplot(BOD1, aes(x= Time, y = demand))+
+  geom_line()+
+  geom_point(size = 4, shape = 22, color = 'darkred', fill = 'pink')
+```
+
+For multiple lines, the default colors are not very appealing, so you may want to use a different palette using scale_color_brewer or scale_color_manual. to set a single size for all the points, specify shape or size outside aes
+
+```{r}
+pd = position_dodge(.2)
+
+ggplot(tg, aes(x = dose, y = length, fill = supp))+
+  geom_line(position = pd)+
+  geom_point(shape = 21, size = 3, position = pd)+
+  scale_fill_manual(values = c('black','white'))
+```
+
+### Making a graph with shaded area
+
+Use geom_area() to get a shaded area.
+
+```{r}
+sunspotsyear = data.frame(
+  year = as.numeric(time(sunspot.year)),
+  Sunspots = as.numeric(sunspot.year)
+)
+
+ggplot(sunspotsyear, aes(x = year, y = Sunspots))+
+  geom_area(fill = 'blue', alpha = .2)
+```
+Add outlines using geom_line()
+
+```{r}
+ggplot(sunspotsyear, aes(x = year, y = Sunspots))+
+  geom_area(fill = 'blue', alpha = .2)+
+  geom_line()
+```
+
+### Making a stacked area graph
+
+Use geom_area() and map a factor to fill
+
+```{r}
+ggplot(uspopage, aes(x = Year, y = Thousands, fill = AgeGroup))+
+  geom_area()
+```
+Beautifying the graph
+
+```{r}
+ggplot(uspopage, aes(x = Year, y = Thousands, fill = AgeGroup))+
+  geom_area(color = 'black', size = .2, alpha = .4)+
+  scale_fill_brewer(type = 'seq', palette = 'Blues', breaks = rev(levels(uspopage$AgeGroup)))
+  
+```
+
+Can also reverse the order inside the aes
+```{r}
+
+ggplot(uspopage, aes(x = Year, y = Thousands, fill = AgeGroup, order = desc(AgeGroup)))+
+  geom_area(color = 'black', size = .2, alpha = .4)+
+  scale_fill_brewer(name = 'Age Group', palette = 'Blues')
+```
+Remove outline by setting NA to color
+```{r}
+ggplot(uspopage, aes(x = Year, y = Thousands, fill = AgeGroup, order = desc(AgeGroup)))+
+  geom_area(color = NA, size = .2, alpha = .4)+
+  scale_fill_brewer(name = 'Age Group', palette = 'Blues')
+```
+
+Making a proportional stacked graph. First calculate the percentage
+```{r}
+uspopage_prop = uspopage %>%
+  group_by(Year) %>%
+  mutate(percentage = Thousands/ sum(Thousands) * 100)
+
+ggplot(uspopage_prop, aes(x = Year, y = percentage, fill = AgeGroup, order = desc(AgeGroup)))+
+  geom_area(color = 'black', size = .2, alpha = .3)+
+  scale_fill_brewer(palette = 'Blues', breaks = rev(levels(uspopage_prop$AgeGroup)))
+```
+
+### Adding a confidence region
+
+Use geom_ribbon to map values to ymin and ymax
+
+```{r}
+clim = subset(climate, Source == 'Berkeley', select = c('Year', 'Anomaly10y', 'Unc10y'))
+
+ggplot(clim, aes(x = Year, y = Anomaly10y))+
+  geom_ribbon(aes(ymin = Anomaly10y - Unc10y,
+                  ymax = Anomaly10y + Unc10y),
+              alpha = .2)+
+  geom_line()
+```
+Geom_ribbon is before geom_line, so that the line is drawn on top of the shaded region. if the reverse were used, shaded region could obscure the line. 
+
+Instead of shaded region we can also use dotted lines to represent upper and lower bounds
+
+
+```{r}
+ggplot(clim, aes(x = Year, y = Anomaly10y))+
+  geom_line(aes(y = Anomaly10y + Unc10y), size = .5, color = 'grey50', linetype = 'dashed')+
+   geom_line(aes(y = Anomaly10y - Unc10y), size = .5, color = 'grey50', linetype = 'dashed')+
+  geom_line(size = 1, color = 'steelblue')
+```
+
+
+
+
+
+
+
+
+
+

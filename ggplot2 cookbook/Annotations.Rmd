@@ -1,0 +1,278 @@
+---
+title: "Annotations"
+author: "Me"
+date: "7/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Adding text annotations
+
+Use annotate() and a text_geom()
+
+```{r}
+library(ggplot2)
+library(gcookbook)
+library(patchwork)
+
+p = ggplot(faithful, aes(x = eruptions, y = waiting))+
+  geom_point()
+
+p + annotate('text', x = 3, y = 48, label = 'Group 1')+ annotate('text', x = 5, y = 65, label = 'Group 2')
+
+  
+```
+
+The annotate function could be used to add any type of geometric object. Other text properties could be specified
+
+```{r}
+p + annotate('text', x = 3, y = 48, label = 'Group 1', family = 'serif',
+             fontface = 'italic', color = 'darkred', size  = 3)+ 
+  annotate('text', x = 5, y = 65, label = 'Group 2',  family = 'serif',
+             fontface = 'italic', color = 'darkred', size  = 3)
+```
+
+Be careful not to use geom_text() when you want to add individual objects. While annotate(geom = 'text') will add a single object to your data, geom_text() will create many text objects.
+
+```{r}
+p + annotate('text', x = 3, y = 48, label = 'group 1', alpha = .5)+
+  geom_text(x = 4.5, y = 66, label = 'group 2')
+```
+
+If the axes are continous, you can use special values Inf and -Inf to place annotations at the edge of the plotting area. You will also need to adjust the position of the text relative to the corner using hjust and vjust. 
+
+```{r}
+p +
+  annotate('text', x = -Inf, y = Inf, label = 'Upper left', hjust = -.2, vjust = 2)+
+  annotate('text', x = mean(range(faithful$eruptions)), y = -Inf, vjust = -.4, label = 'bottom middle')
+```
+
+### Using mathematical expressions in annotations
+
+use annotate(geom = 'text') and set parse = T
+
+```{r}
+p = ggplot(data.frame(x = c(-3,3)), aes(x = x))+
+  stat_function(fun = dnorm)
+
+p +
+  annotate('text', x = 2, y = .3, 
+           parse = T, 
+           label = 'frac(1, sqrt(2 * pi)) * e ^ {-x^2 /2}')
+```
+
+Mathetmatical expressions made with text geoms using parse = T in ggplot2 have a format similar to plotmath expression in R. 
+
+To mix regular text with expressions, use single quotes within double quotes or vice versa to mark plain text parts. Each block of text enclosed in inner quotes is treated as a variable in a mathematical expression. To display two variables next to each other, put a * operator between them. 
+
+```{r}
+p + 
+  annotate('text', x = 0, y = 0.05, parse = T, size = 4,
+           label = "'Function: '* y == frac(1, sqrt(2 * pi)) * e^{-x^2/2}")
+```
+
+### Adding lines
+
+You want to add lines to a plot
+
+For horizontal and vertical lines use geom_hline or geom_vline for angled lines use geom_abline. 
+
+```{r}
+p = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex)) + geom_point()
+
+a = p + geom_hline(yintercept = 60) +
+  geom_vline(xintercept =  14)
+
+b = p + geom_abline(intercept = 37.4, slope = 1.75)
+
+a + b
+```
+
+The previous example demonstrates setting the positions manually, resulting in one line drawn for each geom added. It is also possible to map from the data to xintercept and yintercept. 
+
+Here well take average height for males and females and store it in a dataframe, hw_means. then well draw a horizontal line for each and set linetype and size
+
+```{r}
+library(tidyverse)
+
+hw_means = heightweight %>%
+  group_by(sex) %>%
+  summarise(heightIn = mean(heightIn))
+
+p + geom_hline(aes(yintercept = heightIn, color = sex), 
+              data = hw_means, linetype = 'dashed', size = 1)
+```
+If one of the axes is discrete rather than continous, you cant specify the intercepts just as character strings. they must still be specified as numbers. If the axes represents a factor, the first level has a numeric value of 1. the second level has numeric value of 2 and so on. You can specify the numerical intercept manually and calculate using which(levels())
+
+```{r}
+pg = ggplot(PlantGrowth, aes(x = group, y = weight)) + geom_point()
+
+pg + geom_vline(xintercept =  2)
+
+```
+
+### Adding segments and arrows
+
+Use annotate('segment')
+
+```{r}
+data = subset(climate, Source = 'Berkeley')
+
+p = ggplot(data, aes(x= Year, y = Anomaly10y)) + geom_line()
+
+p + annotate('segment', x = 1950, xend = 1980, y = -.25, yend = -.25)
+```
+Its possible to add arrowheads or flat ends to the line segments, usign arrow() from the grid package.
+
+```{r}
+p + 
+  annotate('segment', x = 1850, xend = 1820, y = -.8, yend = -.95, color = 'blue', size = 2, arrow = arrow()) +
+  annotate('segment', x = 1950, xend = 1980, y = -.25, yend = -.25, arrow = arrow(ends = 'both', angle = 90, length = unit(.2, 'cm')))
+```
+
+
+### Adding a shaded rectangle
+
+use annotate('rect')
+
+```{r}
+p = ggplot(data, aes(x = Year, y = Anomaly10y)) + 
+  geom_line()
+
+p + annotate('rect', xmin = 1950, xmax = 1980,
+             ymin = -1, ymax = 1, alpha = .1, fill = 'blue')
+```
+
+Each layer is drawn in order that it is added to the ggplot object. Any geom could be passed with geom_annotate() as long as you pass proper parameters. 
+
+### Highlighting an item
+
+You want to color an item or make it stand out
+
+To highlight one or more items, create a new column in the data and map it it to color. 
+
+```{r}
+pg = PlantGrowth
+
+pg$hl = 'no'
+
+pg$hl[pg$group == 'trt2'] = 'yes'
+
+ggplot(pg, aes(x = group, y = weight, fill = hl))+
+  geom_boxplot()+
+  scale_fill_manual(values = c('grey60','lightblue'), guide = F)
+```
+
+If you have a small number of items, instead of creating new column, you could use the original one and specify the colors for every level of that variable. For example, the following code will use the group column as fill and manually set the colors
+
+```{r}
+ggplot(PlantGrowth, aes(x = group, y = weight, fill = group))+
+  geom_boxplot()+
+  scale_fill_manual(values = c('grey85','grey85','lightblue'), guide = F)
+```
+
+### Addign errorbars 
+
+Use geom_errorbar() and map variables to ymin and ymax. Adding errorbars is done the same way for bar graphs and line graphs. 
+
+```{r}
+#take a subset of cabbage_exp data
+
+ce = subset(cabbage_exp, Cultivar == 'c39')
+
+#using a bar graph
+
+a = ggplot(ce, aes(x = Date, y = Weight)) + 
+  geom_col(fill = 'white', color = 'black')+
+  geom_errorbar(aes(ymin= Weight - se, ymax = Weight + se), width = .2)
+
+#with a linegraph
+
+b = ggplot(ce, aes(x = Date, y = Weight)) + 
+  geom_line(aes(group = 1))+
+  geom_errorbar(aes(ymin= Weight - se, ymax = Weight + se), width = .2)
+
+a + b
+```
+
+
+In this example, the data has already values for the standard error of the mean. 
+
+For bar graphs with with groups, error bars must also be dodged. other wise they will have the same x coordinate and wont lineup with the bars
+
+```{r}
+#bad dodge
+
+a = ggplot(cabbage_exp, aes(x = Date, y = Weight, fill = Cultivar))+
+  geom_col(position = 'dodge')+
+  geom_errorbar(aes(ymin = Weight-se, ymax = Weight + se), position = 'dodge', width = .2)
+
+b = ggplot(cabbage_exp, aes(x = Date, y = Weight, fill = Cultivar))+
+  geom_col(position = 'dodge')+
+  geom_errorbar(aes(ymin = Weight-se, ymax = Weight + se), position = position_dodge(.9), width = .2)
+
+a + b
+```
+
+
+For line graphs, if the error bars are different colors than the lines and points, you should draw the error bar first so that they are underneath points and lines, otherwise they will be drawn on top of the points and lines which wont look right.
+
+```{r}
+pd = position_dodge(.3)
+
+ggplot(cabbage_exp, aes(x = Date, y = Weight, color = Cultivar, group = Cultivar))+
+  geom_errorbar(aes(ymin = Weight - se, ymax = Weight + se),
+                width = .2, se = .25, color = 'black', position = pd)+
+  geom_line(position = pd)+
+  geom_point(position = pd)
+```
+
+Notice that we set color = 'black' to make error bars black. Otherwise they would inherit color. We also made sure the cultivar  was used as grouping variable by mapping it to group. 
+
+WHen a discrete variable is mapped to an aesthetic like color or fill, that variable is used for grouping the data. But by setting the color of these error bars, we made it so that the variable for color was not used for grouping, and we needed some otherway to inform ggplot. 
+
+
+### Annotations to each facet
+
+create a new dataframe with faceting variables and value to use in facet. THen use geomtext with the new dataframe
+
+
+```{r}
+p = ggplot(mpg, aes(x = displ, y = hwy)) + geom_point() + facet_grid(. ~ drv)
+
+f_labels = data.frame(
+  drv = c('4','f','r'),
+  label = c('4wd','Front','Rear')
+)
+
+#add label for each facet
+a = p + geom_text(x = 6, y = 40, aes(label = label) , data = f_labels)
+
+#if you use annotate the label will appear in all facets
+
+b = p + annotate('text', x = 6, y = 42, label = 'label text')
+
+a / b
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

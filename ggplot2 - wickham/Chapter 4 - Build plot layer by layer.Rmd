@@ -1,0 +1,128 @@
+---
+title: "Build plot layer by layer"
+author: "Me"
+date: "7/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Layering is the mechanism by which additional data elements are added to a plot. 
+
+
+Creating a plot - ggplot has two arguments: data and aesthetic mappings. 
+
+```{r}
+p = ggplot(diamonds, aes(carat, price, color = cut))
+```
+
+Layers - minimal layer do nothing more than specify a geom. A way of visually representing the data
+
+```{r}
+p = ggplot(diamonds, aes(x = carat))
+p + layer(
+  geom = 'bar',
+  geom_params = list(fill = 'steelblue'),
+  stat = 'bin',
+  stat_params = list(binwidth = 2)
+)
+```
+shortcut functions begins with geom_ or stat_
+
+geom_xxx(mapping, data, .... geom, position)
+stat_xxx(mapping, data, .... geom, position)
+
+
+```{r}
+ggplot(msleep, aes(sleep_rem/ sleep_total, awake))+
+  geom_point()+
+  geom_smooth()
+```
+
+
+Plot and layers could be stored as variables. Making it easy to write code for duplication. 
+
+
+Data - restriction is that the data must be a dataframe. 
+
+Aesthetic mappings - describe the way variables in the data are mapped to things that we can see on the plot. 
+
+Plot and layers - default mappings can be extended or overriden in the layers. Aesthetic mapping specified in a layer only affects that layer. 
+
+Setting vs mapping - we map aesthetic to a variable or set it constant
+aes(color = cut)
+color = 'red'
+
+
+Grouping - group is set to the interaction of all discrete variables in the plot. This often partitions data correctly. 
+
+Multiple groups, one aesthetic - in many situations you want to separate your data into groups but render them the same way. 
+ggplot(oxboys, aes(age, height, group = subject))+
+geom_line()
+
+Different groups on different layers - sometimes we want to plot summaries based on different levels of aggregation. Different layers might have different group aesthetics. 
+
+For example, if we add geom_smooth to all groups, they will have individual geom_smooth. instead you must set group = 1
+
+Overriding default grouping - 
+
+Geoms - each geom has default statistics and every statistics has default geoms. 
+
+stat - transforms the data, typically by summarising it in some manner. 
+
+```{r}
+ggplot(diamonds, aes(carat))+
+  geom_histogram(aes(y = ..density..), binwidth = .1)
+```
+
+The names of generated variables must be surrounded with .. when used to prevent confusion in case the original variable includes the same name. 
+
+Position adjustments - 
+Dodge - adjust position by dodging overlaps
+fill - stack overlapping objects
+identity - dont adjust points
+jitter - jitter points to avoid overplotting
+stack - stack overlapping points on top of one another
+
+
+Combining geom and stats - by connecting geoms with different statistics, you can easily create new graphics. The following use same statistical transformation but use different geoms to display the results: area geom, point geom, and tile geom
+
+```{r}
+d = ggplot(diamonds, aes(carat))+xlim(0,3)
+
+d+ stat_bin(aes(ymax = ..count..), binwidth = .1, geom = 'area')
+```
+
+
+```{r}
+d + stat_bin(
+  aes(size= ..density..), binwidth = .1, geom = 'point', position = 'identity'
+)
+```
+
+
+Displaying precomputed statistics - if you have data which already has been summarised, youll need to use stat_identity. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

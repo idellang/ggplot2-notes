@@ -1,0 +1,119 @@
+---
+title: "Facets"
+author: "Me"
+date: "7/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Splitting data into subplots with facets
+
+use facet_grid() or facet_wrap() and specify which variable to split
+
+
+```{r}
+library(ggplot2)
+library(gcookbook)
+library(tidyverse)
+library(patchwork)
+
+#base plot
+
+p = ggplot(mpg, aes(x = displ, y = hwy)) + geom_point()
+
+#vertically arranged panels
+a = p + facet_grid(drv ~ .)
+
+#horizontally arrange panels
+b = p + facet_grid(.~ drv)
+
+a + b
+```
+SPlit by vertical and horizontal
+```{r}
+p + facet_grid(drv ~ cyl)
+```
+
+With facet_wrap(), subplots are laid out horizontally and wrap around like words on a page
+
+```{r}
+p + facet_wrap( ~ class)
+```
+
+number of rows and columns could be specified in facet
+
+```{r}
+p + facet_wrap(~class, nrow = 2)
+```
+
+
+### Using facets with different axes
+
+set the scales to free_x or free_y
+
+```{r}
+p + facet_grid(drv ~ cyl, scales = 'free')
+```
+
+### Changing the 
+
+```{r}
+mpg2 = mpg
+
+#name hte levels
+
+mpg2 %>%
+  mutate(drv = case_when(
+    drv == 'f' ~ 'front drive',
+    drv == '4' ~ 'forward',
+    drv == 'r' ~ 'rear'
+  )) %>%
+  ggplot(aes(displ, hwy)) +
+  geom_point()+
+  facet_wrap(~drv)
+```
+### Changing the apperance of facet labels and headers
+
+use the strip in theme()
+
+```{r}
+ggplot(cabbage_exp, aes(x = Cultivar, y = Weight)) +
+  geom_col()+
+  facet_wrap(~ Date) +
+  theme(
+    strip.text = element_text(face = 'bold', size = rel(1.5)),
+    strip.background = element_rect(fill = 'lightblue', color = 'black', size = 1)
+    
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,327 @@
+---
+title: "Toolbox"
+author: "Me"
+date: "7/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Three purposes for a layer
+- Add data: Plot raw data.
+- To display summary: It is useful to display model predictions in the context of data. Showing the data helps us improve the model and showing the model helps us reveal subtleties of the data. Summaries are drawn on top of the data
+- Add metadata: context, annotations. Help to give meaning to the raw data. Used to highlight import features of the data. You want this to be the very last drawn layer.
+
+Basic Plot types
+
+All of these geoms are 2D and requires both x and y aesthetics. all understand color and size  and the filled geoms(bar, tile, polygon) understand fill. point geom uses shape and line and path geoms understand linetype. 
+
+geom_area : draws an area plot which is a line plot filled to the y-axis. 
+geom_bar(stat = 'identity'): makes a barchart.  By default multiple bars in the same location will be stacked on top of each other
+geom_line: makes a line plot. group aesthetic determines which lines are connected. 
+geom_point: produces scatterplot
+geom_polygon: draws polygon which are filled paths. it is often useful to merge a dataframe of polygon coordinates with the data priort to plotting
+geom_text: adds labels at the specified points. This is the only geom that requires another aesthetic : label. it also has hjust and vjust to control horizontal and vertical position. 
+geom_tile: makes an image plot or level plot. 
+
+
+
+Displaying Distributions:
+
+For 1D distribution, the most important geom is histogram. You can change the binwidth and the exact location of breaks. If you want to compare the distribution between groups, you have a few options: create a multiple histogram using facets or use a frequency polygon geom_freqpoly, or create conditional density plot.
+
+```{r}
+library(ggplot2)
+depth_hist = ggplot(diamonds, aes(depth))+
+  xlim(58, 68)
+
+depth_hist +
+  geom_histogram(aes(y = ..density..), binwidth = .1)+
+  facet_grid(cut ~.)
+
+depth_hist+
+  geom_histogram(aes(fill = cut), binwidth = .1, position = 'fill')
+
+depth_hist +
+  geom_freqpoly(aes(y = ..density.., color = cut), binwidth = .1)
+```
+
+Both histogram and frequency polygon use stat_bin. this produces two outputs, count and density. The count is the dault as it is most interpretable. The density is count divided by total. You will often prefer this when comparing distribution of subsets that have different sizes.
+
+Many distribution-related geoms come in geom/stat pairs. Most of these geoms are aliases: a basic geom is combined with a stat to produce the desired plot. 
+
+geom_boxplot : box and whisker plot, for a continous variable conditioned by a categorical variable. This is a useful display when categorical variable has many distinct values. this technique is also useful for continous variable if they are binned
+
+```{r}
+ggplot(diamonds, aes(cut, depth))+
+  geom_boxplot()
+```
+
+geom_jitter = position_jitter + geom_point: a crude way of looking at discrete distributions by adding random noise to the discrete values so they dont overplot. 
+
+```{r}
+ggplot(mpg, aes(class, cty))+
+  geom_jitter()
+```
+
+geom_density = stat_density + geom_area: a smoothed version of the frequency polygon based on kernel smoothers. Use a density plot when you know the underlying density is smooth, continous, and unbounded. 
+
+```{r}
+ggplot(diamonds, aes(depth, fill = cut))+
+  geom_density()+
+  coord_cartesian(xlim = c(54,70))
+```
+
+Dealing with overplotting
+
+The scatterplot is a very important tool for assessing relationship between two continous variables. however, when the data is large, often points will be plotted on top of each other, obscuring the true relationship. In extreme cases, you will only be able to see the extent of the data. Any conclusions drawn from the graphic will be suspect. This problem is called overplotting and there are several ways to deal with it
+
+Small amounts of overplotting can be alleviated by making the points smaller, using hollow glyphs. 
+
+```{r}
+library(tibble)
+df = tibble(
+  x = rnorm(2000),
+  y = rnorm(2000)
+)
+
+norm = ggplot(df, aes(x,y))
+norm+geom_point()
+
+norm + geom_point(shape = 1)
+
+norm+geom_point(shape = '.')
+```
+
+
+For larger datasets with more overplotting, you can use alpha bending to make points transparent. 
+
+```{r}
+norm + geom_point(color = alpha('black',1/10))
+```
+
+
+By default, the amount of jitter added is 40% of the resolution of data, which leaves small gap between adjacent regions. 
+
+```{r}
+td = ggplot(diamonds, aes(table, depth))+
+  xlim(50,70)+
+  ylim(50,70)
+
+td + geom_point()
+
+td+geom_jitter()
+
+td + geom_jitter(position = position_jitter(width = .5))
+
+td + geom_jitter(position = position_jitter(), color = alpha('black', 1/10))
+```
+
+Bin the points and count each bin then visualize that count in some way. 
+
+```{r}
+d = ggplot(diamonds, aes(carat, price))+ 
+  xlim(1,3)+
+  theme(legend.position = 'None')
+
+d + stat_bin2d()
+
+d + stat_bin2d(bins = 10)
+
+d + stat_bin2d(binwidth = c(.02, 200))
+
+d + stat_binhex()
+
+d + stat_binhex(bins = 10)
+```
+
+
+Estimate 2D density with stat_density2d and overlay contours from the distribution on the scatterplot or display the density by itself as colored tiles, or points with size proportional to density
+
+
+```{r}
+d = ggplot(diamonds, aes(carat, price))+
+  xlim(1,3) +
+  theme(legend.position = 'none')
+
+d + geom_point()
+
+d + stat_density2d(geom = 'point', aes(size = ..density..), contour = F)
+
+d + stat_density(geom  = 'tile', aes(fill = ..density..), contour = F)
+```
+
+
+Drawing maps
+
+maps package works with ggplot2. There are two basic reason you might want to use map: add reference to outlines and a plot of spatial data or to construct a choropleth map by filling regions with color.
+
+adding a map borded is performed by the borders() function. The first two arguments select the map and region with the map to display. The remaining arguments control the apperance of borders. you can set fill color.
+
+```{r}
+library(maps)
+
+data(us.cities)
+
+
+big_cities = subset(us.cities, pop > 500000)
+
+big_cities %>%
+  ggplot(aes(long, lat))+
+  borders('state', size = .5)
+
+tx_cities = subset(us.cities, country.etc == 'TX')
+ggplot(tx_cities, aes(long,lat))+
+  borders('county', 'texas', color = 'grey70')+
+  geom_point(color = alpha('black', .5))
+```
+
+
+Choropleth maps are a little trickier and lot less automated because it is challenging to match identifiers in your data to the identifiers in the map data. The following example shows how to use map_data() to convert map into  a dataframe which can be merged with your data to produce a choropleth map. 
+
+```{r}
+library(maps)
+states = map_data('state')
+arrests = USArrests
+
+names(arrests) = tolower(names(arrests))
+arrests$region = tolower(rownames(USArrests))
+
+choro = merge(states, arrests, by = 'region')
+
+#reorder the rows because order matters when drawing polygons
+
+choro = choro[order(choro$order),]
+
+ggplot(choro, aes(long,lat, group = group, fill = assault))+
+  geom_polygon()
+```
+
+Revealing Uncertainty
+
+Four basic families of geom can be used to display uncertainty depending whether the x values are discrete or continous and whether or not you want to display the middle of interval, or just the extent. These geoms are listed in table 5.2 
+
+continuous = geom_ribbon/geom_smooth
+discrete = geom_errorbar/ geom_crossbar
+            geom_linerange/geom_pointrange
+            
+
+
+Statistical summaries
+It is often useful to be able to summarise the yvalues for each unique x value. This role is displayed by stat_summary() which provides a flexible way of summarising conditional distribution of y with aesthetics ymin, y, and ymax. 
+
+Examples of stat summary
+Continous
+- median and line
+- median_hillow() and smooth
+- mean and line
+- mean_cl_boot() and smooth
+
+discrete
+- mean
+- mean_cl_normal and error_bar
+- median_hillow and point range
+- median_hillow and cross bar
+
+
+
+
+Annotating a plot
+- two basic ways to add annotations: one at a time, or many at once
+- adding one at a time works for small numbers of annotation with varying aesthetics. You just set all the values to give desired properties. If you have multiple annotations with similar properties, it may make sense to put them all in a data frame and add them at once.
+
+
+```{r}
+plot = economics %>%
+  ggplot(aes(date, unemploy))+
+  geom_line()+
+  labs(
+    x = '',
+    y = 'No. of Unemployed (1000)s'
+  )
+
+presidential = presidential[-(1:3),]
+
+yrng = range(economics$unemploy)
+xrng = range(economics$date)
+
+plot + geom_vline(aes(xintercept = start), data = presidential)
+```
+
+```{r}
+plot + geom_rect(aes(NULL, NULL, xmin = start, xmax = end, fill = party),
+                 ymin = yrng[1], ymax = yrng[2], data = presidential)+
+  scale_fill_manual(values = alpha(c('blue','red'), .2))
+  
+```
+
+
+```{r}
+last_plot() + geom_text(aes(x = start, y = yrng[1], label  = name), data = presidential, size = 3, hjust = 0, vjust = 0)
+```
+
+```{r}
+highest = subset(economics, unemploy == max(unemploy))
+
+plot + 
+  geom_point(data = highest, size = 3, color = alpha('red', .5))
+```
+
+
+geom_vline, geom_hline = add vertical or horizontal lines
+geom_abline = add lines with slope and intercept
+geom_rect = for highlighting interesting regions in plot. has aesthetics xmin, xmax, ymin, ymax
+geom_line, geom_path, geom_segment for adding lines. all these geoms have an arrow parameter which allows to place an arrowhead on the line. You create arrow heads with arrow() function, which has arguments angle, length, ends, and type
+
+
+Weighted data
+
+When you have aggregated data where each row in the dataset represents multiple observations, you need some way to take into account weighting variable. 
+
+```{r}
+midwest
+```
+
+There are few different things we want to weight by
+nothing, to look at number of counties
+total population, to work with absolute numbers
+area, to investigate geographic effects
+
+The choice of weighting variable profoundly affects what we are looking in the plot and the conclusions that we will draw. There are two aesthetics attributes that can be used to adjust for weights. Firstly for simple geoms like lines and points you can make the size of the grob proportional to the number of points, using size aesthetic. 
+
+```{r}
+ggplot(midwest, aes(percwhite, percbelowpoverty))+
+  geom_point(aes(size = poptotal / 1e6))
+```
+
+For more complicated grobs which involve some statistical transformation. we specify weights with the wweight aesthetic. Weights are supported for every case where it makes sense, smoothers, quantile regressions, boxplots, histograms, and density plots. You cant see weighting variable directly and it does not produce a legend but it will change the results of statistical summary
+
+
+```{r}
+lm_smooth  = geom_smooth(method = 'lm', size = 1)
+ggplot(midwest, aes(percwhite, percbelowpoverty))+
+  geom_point(aes(weight = popdensity, size = popdensity))+
+  lm_smooth
+
+?geom_line
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

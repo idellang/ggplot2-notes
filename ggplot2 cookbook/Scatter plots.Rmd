@@ -1,0 +1,535 @@
+---
+title: "Scatter plots"
+author: "Me"
+date: "7/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Scatter plots are used to display relationship between two variables. often, a scatterplot will also have a line showing the predicted values based on some statistical model. This is easy to do with R and ggplot2. 
+
+with large datasets, it can be problematic to plot every single observation because the points will be overplotted, obscuring one another, when this happens youll probably want to summarize the data before displaying it. 
+
+
+### Making a basic scatterplot
+
+Use geom_point() to map x and y
+
+```{r}
+library(ggplot2)
+library(gcookbook)
+
+ggplot(heightweight, aes(ageYear, heightIn))+
+  geom_point()
+```
+
+
+To use different shapes, a common alternative to the default solid circles (shape #16) is hollow ones(#21)
+
+
+```{r}
+library(patchwork)
+a = ggplot(heightweight, aes(x = ageYear, y = heightIn))+
+  geom_point(shape = 21)
+
+b = ggplot(heightweight, aes(x = ageYear, y = heightIn))+
+  geom_point(size = 1.5)
+
+a / b
+```
+
+### Grouping data using shape or color
+
+```{r}
+a = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex))+
+  geom_point()
+
+b = ggplot(heightweight, aes(x = ageYear, y = heightIn, shape = sex))+
+  geom_point()
+
+a + b
+```
+The grouping must be categorical. In other words a factor or a character vector. It is possible to map a variable to both shape and color. 
+
+```{r}
+ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex, shape = sex))+
+  geom_point()
+```
+
+Default colors and shapes could be changed using scale_color_brewer or scale_color_manual
+
+```{r}
+ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex, shape = sex))+
+  geom_point()+
+  scale_shape_manual(values = c(1,2))+
+  scale_color_brewer(palette = 'Set1')
+```
+
+### Using different point shapes
+
+If you want to set the shape in all of the points, specify the shape in geom_point()
+
+```{r}
+ggplot(heightweight, aes(x = ageYear, y= heightIn))+
+  geom_point(shape = 3)
+```
+
+If you have mapped a variable to shape, use scale_shape_manual() to change the shapes.
+
+```{r}
+ggplot(heightweight, aes(x = ageYear, y= heightIn, shape = sex))+
+  geom_point(size = 3)+
+  scale_shape_manual(values = c(1,4))
+```
+Some of the point shapes(1-14) have just an outline, some (15-20) are solid, and some (21-25) have an outline and fill that could be controlled. For shapes 1-20, the points are solid and controlled by color aesthetic. For shapes 21-25, the outline is controlled by color and fill is controlled by fill
+
+its possible to have the shape represented by one variable and the fill represented with another variable. This is done a little indirectly, by choosing shapes that have both color and fill, and a color palette that includes NA and another color (the NA will result to hollow shape)
+
+```{r}
+#make a copy of data
+hw = heightweight
+
+#categorize into <100 and > 100 groups
+
+hw$weightGroup = cut(hw$weightLb, breaks = c(-Inf, 100, Inf), 
+                     labels = c('< 100', '>= 100'))
+
+#use shapes and fill and color. use colors that are NA and filled
+
+ggplot(hw, aes(x = ageYear, y= heightIn, shape = sex, fill = weightGroup))+
+  geom_point(size = 2.5)+
+  scale_shape_manual(values = c(21,24),
+                     guide = guide_legend(override.aes = list(shape = 21)))
+```
+
+### Mapping a continous variable to color or size.
+
+You may want to represent a third continous variable using color or size. 
+
+```{r}
+a = ggplot(heightweight, aes(x = ageYear, y= heightIn, color = weightLb))+
+  geom_point()
+
+b = ggplot(heightweight, aes(x = ageYear, y= heightIn, size = weightLb))+
+  geom_point()
+
+a + b
+
+```
+
+We can easily perceive locations but we are not very good at perceiving small differences in size and color.  When you map a variable to of these properties, it should be one where accuracy is not very important. When a variable is mapped to size, the results could be misleading. 
+
+if it is important for the sizes to be proportionally represent the quantities, you can change the range of sizes. 
+
+When it comes to color, there are two aesthetic attributes that could be used: color and fill. For most point shapes you use color, however for shapes 21-25 you use fill. these outlined shapes can be useful when using a color scale with light colors.
+
+```{r}
+ggplot(heightweight, aes(x = weightLb, y= heightIn, fill = ageYear))+
+  geom_point(shape = 21, size = 2.5)+
+  scale_fill_gradient(low = 'black', high = 'white')
+```
+
+Using guide_legend() will result in a discrete legend instead of a color bar
+
+```{r}
+ggplot(heightweight, aes(x = weightLb, y= heightIn, fill = ageYear))+
+  geom_point(shape = 21, size = 2.5)+
+  scale_fill_gradient(low = 'black', high = 'white',
+                      breaks = 12:17, guide = guide_legend())
+```
+
+When we map a continous variable to an aesthetic, that does not prevent us from mapping a categorical variable to other aesthetics. well map weightLb to size and map sex to color. Because there is a fair amount of overplotting, well make the points 50% transparent by setting alpha = .5. Well also use scale_size_area to make the area proportional to the value. 
+
+```{r}
+ggplot(heightweight, aes(x = ageYear, y= heightIn, size = weightLb, color = sex))+
+  geom_point(alpha = .5)+
+  scale_size_area()+
+  scale_color_brewer(palette = 'Set1')
+```
+
+When a variable is mapped to size, it is not a good idea to map a variable to shape. This is because it is difficult to compare sizes of different shapes.
+
+
+### Dealing with overplotting
+If the amount of overplotting is low, you may be able to alleviate it by using smaller points or by using different shape(shape1 hollow circle). If there's a high degree of overplotting, there are number of possible solutions
+- make data points transparent
+- bin the data into rectangles
+- bin into hexagon
+- use boxplots
+
+This scatter plot is made up of 54000 points. 
+```{r}
+sp = ggplot(diamonds, aes(x = carat, y = price))
+
+sp + geom_point()
+
+a = sp + geom_point(alpha = .1)
+b = sp + geom_point(alpha = .01)
+
+a + b
+```
+Another solution is to bin it into rectangles and map the density of the points and fill the rectangles. with binned visualization, vertical bands are barely visible. 
+
+by default, stat_bin_2d divides space into 30 groups in the x and y directions for a total of 900 bins. 
+
+the default colors are somewhat difficult to distinguish because they dont vary much. In the second version we set colors by using scale_fill_gradient and specifying low and high colors. By default, the legend does not show entry for lowest values. To make the legend show zero, we can manually set the range from 0 to maximum 6000 using limits
+
+```{r}
+a = sp + stat_bin_2d()
+
+b = sp + stat_bin_2d(bins = 50) +
+  scale_fill_gradient(low = 'lightblue', high = 'red', limits = c(0, 6000))
+
+a + b
+```
+
+Another alternative is to bin the data into hexagons instead of rectangles. with stat_bin_hex. 
+
+```{r}
+a = sp +
+  stat_bin_hex(bins = 50) +
+  scale_fill_gradient(low = 'lightblue', high = 'red', limits = c(0, 6000))
+
+b =  sp +
+  stat_bin_hex(bins = 50) +
+  scale_fill_gradient(low = 'lightblue', high = 'red', limits = c(0, 6000), 
+                      breaks = c(0, 250, 500,1000,2000,4000,6000))
+
+a + b
+```
+
+Overplotting can also occur when the data is discrete on one or both axes. In this cae, you can randomly jitter the points with position_jitter
+
+```{r}
+sp1 = ggplot(ChickWeight, aes(x = Time, y = weight))
+
+a = sp1 + geom_point()
+b = sp1 + geom_jitter()
+
+a + b
+```
+
+When the data has one discrete axis and one continous axis, it might make sense to use boxplots. 
+
+With the ChickWeights data, the x axis is conceptually discrete but since it is stored numerically, ggplot does not know how to group for each box. if you dont tell it how to group the data, you will get a wrong result. 
+
+```{r}
+a = sp1 + geom_boxplot()
+b = sp1 + geom_boxplot(aes(group = Time))
+
+a + b
+```
+
+### Adding a fitted regression model
+
+To add a linear model, add stat_smooth. 
+
+```{r}
+sp = ggplot(heightweight, aes(x = ageYear, y = heightIn))
+
+sp +
+  geom_point()+
+  stat_smooth(method = 'lm')
+```
+
+By default stat_smooth adds 95% confidence region for the regression fit. The confidence interval can be changed or can be disabled. You can also change the default colors inside the stat_smooth
+
+```{r}
+a = sp + geom_point() + stat_smooth(method = lm, level = .99)
+b = sp + geom_point() + stat_smooth(method = lm, se = F)
+c = sp + geom_point(color = 'grey60') + stat_smooth(method = lm, color = 'black')
+
+a + b + c
+```
+
+The linear regression line is not the only way of fitting the data. If you add stat_smooth without specifying the method, it will use loess as a default
+
+```{r}
+sp + geom_point() + stat_smooth()
+```
+
+ANother common type of model fit is logistic regression. Logistic regression is not appropriate for heightweight data but is on biopsy dataset. In this dataset, there are nine different measured attributes of breast cancer biopsies as well as the class of tumor, which is either malignant or benign. To prepare the data for logistic regression, we must convert the factor to class, with the levels benign or malignant, to a vector of numeric values 0 or 1. 
+
+```{r}
+library(MASS)
+
+b = biopsy
+
+b$classn[b$class == 'benign'] = 0
+b$classn[b$class == 'malignant'] = 1
+
+b
+```
+
+
+Although there are many attributes that we could examine, well just take a look at the relationship of v1(clump thickness) and the class tumor. Because there is a large degree of overplotting, well jitter the points and make them semi transparent. Well add a fitted regression line by telling stat_smooth to use glm() function with the option family = binomial. 
+
+
+```{r}
+ggplot(b, aes(V1, classn))+
+  geom_jitter(width = .3, height = .06, alpha = .4, shape = 21, size = 1.5)+
+  stat_smooth(method = "glm", method.args = list(family = "binomial"))
+```
+
+if your scatter plot has points grouped by a factor, using color or shape, one fit line will be drawn for each group. 
+
+```{r}
+sps = ggplot(heightweight, aes(ageYear, heightIn, color = sex))+
+  geom_point()+
+  scale_color_brewer(palette = 'Set1')
+
+sps + geom_smooth()
+```
+
+If you want to extrapolate from the data, you msut us e models that allow extrapolation. and pass the fullrange = T
+```{r}
+sps + 
+  geom_smooth(method = lm, se = F, fullrange = T)
+```
+
+### Adding a fitted line from an existing model
+
+The easiest way to overlay a fitted model is simply ask stat_smooth to do it for you. SOmetimes however, you want to create the model yourself and add it to the graph. 
+
+In this example, well build a quadratic model using lm with ageYear as predictor of heightIn. Then well use predict function to find predicted values
+
+
+```{r}
+model = lm(heightIn ~ ageYear + I(ageYear ^2), data = heightweight)
+
+model
+```
+
+```{r}
+library(modelr)
+
+grid = heightweight %>%
+  data_grid(ageYear)
+
+predictions = grid %>%
+  add_predictions(model)
+
+sp = ggplot(heightweight, aes(x = ageYear, y = heightIn))+
+  geom_point(color = 'grey40')
+
+sp + geom_line(data = predictions, size = 1, aes(y = pred))
+```
+
+Any model object can be used so long as it has corresponding predict method(), Adding lines from a model can be simplified by using predictvals(). if you simply pass in a model, it will do the work of finding the variables name and range of predictor and will return a dataframe with predictor and predicted values. That data frame could be passed in geom_line() to draw the fitted lines
+
+```{r}
+predictvals = function(model, xvar, yvar, xrange = NULL, samples = 100, ...){
+  if (is.null(xrange)){
+    if (any(class(model) %in% c('lm','glm')))
+      xrange = range(model$model[[xvar]])
+    else if (any(class(model) %in% 'loess'))
+      xrange = range(model$x)
+  }
+  
+  newdata = data.frame(
+    x = seq(xrange[1], xrange[2], length.out = samples)
+  )
+  names(newdata) = xvar
+  newdata[[yvar]] = predict(model, newdata = newdata, ...)
+  newdata
+}
+```
+
+
+Create a linear model with lm and loess model
+
+```{r}
+modlinear = lm(heightIn ~ ageYear, heightweight)
+modloess = loess(heightIn ~ ageYear, heightweight)
+
+lm_predicted = predictvals(modlinear, 'ageYear','heightIn')
+loess_predicted = predictvals(modloess, 'ageYear','heightIn')
+
+sp +
+  geom_line(data = lm_predicted, color = 'red')+
+  geom_line(data = loess_predicted, color = 'blue')
+```
+```{r}
+grid = heightweight %>%
+  data_grid(ageYear)
+
+predictions = grid %>%
+  add_predictions(modlinear, var = 'pred_linear') %>%
+  add_predictions(modloess, var = 'pred_loess')
+
+sp +
+  geom_line(data = predictions,aes( y = pred_linear), color = 'red')+
+  geom_line(data = predictions,aes( y = pred_loess), color = 'blue')
+```
+
+For glm models that use non linear link functions. you need to specify type = 'response' to the predictvals function. This is because the default behavior is to return the predicted values in the scale of linear predictors, instead of the scale of response y variable
+
+```{r}
+fitlogistic = glm(classn ~ V1, b, family = binomial)
+
+glm_predicted = predictvals(fitlogistic, 'V1','classn', type = 'response')
+
+pred = b %>%
+  data_grid(V1) %>%
+  add_predictions(fitlogistic)
+
+ggplot(b, aes(V1, classn))+
+  geom_jitter(width = .3, height = .08, alpha = .4, shape = 21, size = 1.5)+
+  geom_line(data = glm_predicted, color = 'blue', size = 1)
+```
+
+### Adding fitted lines from multiple existing models
+
+well make a linear model for each levels of sex. and put those models in a list. 
+
+```{r}
+
+library(tidyverse)
+
+#create a function for modeling
+make_model = function(data){
+  lm(heightIn ~ ageYear, data)
+}
+
+library(broom)
+
+#apply the model
+models = heightweight %>%
+  group_by(sex) %>%
+  nest() %>%
+  mutate(models = map(data, make_model))
+
+tidymodel = models %>%
+  mutate(augment = map(models, augment)) %>%
+  unnest(augment)
+```
+
+
+```{r}
+tidygraph = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex))+
+  geom_point()+
+  geom_line(data = tidymodel, aes(y = .fitted))
+
+tidygraph
+```
+
+```{r}
+models = heightweight %>%
+  split(.$sex) %>%
+  map(make_model)
+
+predvals = map(models, .f = predictvals, xvar = 'ageYear', yvar = 'heightIn')
+
+predvals[[1]]$sex = 'f'
+predvals[[2]]$sex = 'm'
+
+a = ggplot(heightweight, aes(x = ageYear, y = heightIn, color = sex))+
+  geom_point()+
+  geom_line(data = predvals_final)
+
+predvals_final = rbind(predvals[[1]], predvals[[2]])
+
+b = ggplot(heightweight, aes(x = ageYear, y = heightIn))+
+  geom_point()+
+  geom_line(data = predvals_final)+
+  facet_wrap(~sex)
+
+a + b
+```
+
+```{r}
+tidygraph + a
+```
+
+
+```{r}
+predvals_final
+```
+
+
+### Labeling points in a scatterplot
+
+For annotation of few points you can use geom_text or annotate(). 
+
+```{r}
+data = subset(countries, Year == 2009 & healthexp > 2000)
+
+sp = ggplot(data, aes(x = healthexp, y = infmortality))+
+  geom_point()
+
+sp + 
+  annotate('text', x = 4350, y = 5.4, label = 'Canada')+
+  annotate('text', x = 7400, y = 6.8, label = 'USA')
+```
+
+```{r}
+sp+
+  geom_text(aes(label = Name), size = 4)
+```
+The automatic method for placing annotations center each annotation on x and y. we can adjust vjust and hjust to shift labels.
+```{r}
+sp+
+  geom_text(aes(label = Name), size = 4, vjust = 1, hjust = 1)
+```
+
+You can add new columns in the dataframe containing just labels. 
+
+```{r}
+
+idx = data$Name %in% c('Canada','Ireland','United Kingdom','United States','New Zealand','Iceland','Japan','Netherlands')
+
+data$Name1 = data$Name
+
+data$Name1[!idx] = NA
+
+ggplot(data, aes(x = healthexp, y = infmortality))+
+  geom_point()+
+  geom_text(aes(label = Name1), size = 4, vjust = 1)
+```
+
+### Creating a balloon plot
+
+You may want to create a balloon plot where the area of the dot is proportional to their numerical value. To do this, you need to use geom_point() with scale_size_area()
+
+```{r}
+cdat = subset(countries,
+              Year == 2009 &
+                Name %in% c('Canada', 'Ireland','United Kingdom','United States','New Zealand','Iceland','Japan','Luxembourg','Netherlands','Switzerland'))
+
+cdat
+```
+
+If we just map GDP to size, the value of GDP gets mapped to the radius of the dots, which is not what we want; a double in value results to quadrupling in area. Instead we want to map it to area using scale_size_area
+
+```{r}
+p = ggplot(cdat, aes(x = healthexp, y = infmortality, size = GDP)) + 
+  geom_point(shape = 21, color = 'black', fill = 'cornsilk')
+
+p + scale_size_area(max_size = 15)
+```
+Making a scatterplot matrix
+
+A scatterplot matrix is an excellent way of visualizing pairwise relations among several variables. To make one we can use pairs() from the R' base graphics
+
+
+```{r}
+c2009 = subset(countries, Year == 2009,
+               select = c(Name, GDP, laborrate, healthexp, infmortality))
+
+pairs(c2009)
+```
+
+```{r}
+library(GGally)
+
+ggpairs(c2009[,c(2,3,4,5)])
+```
+
+
+
+
+
+
